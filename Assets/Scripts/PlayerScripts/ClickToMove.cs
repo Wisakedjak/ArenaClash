@@ -21,6 +21,8 @@ namespace PlayerScripts
         private int _groundLayer;
         
         public event Action<bool> OnMove;
+        
+        public delegate bool OnMoveDelegate(bool obj);
 
         private void Awake()
         {
@@ -28,32 +30,16 @@ namespace PlayerScripts
             _characterController = GetComponent<CharacterController>();
             _groundLayer = LayerMask.NameToLayer("Ground");
         }
-
-        private void OnEnable()
+        
+        public void Move(RaycastHit hit)
         {
-            mouseClickAction.Enable();
-            mouseClickAction.performed += Move;
+            if (_moveCoroutine != null) StopMove();
+            _moveCoroutine = StartCoroutine(PlayerMove(hit.point));
+            _targetPosition = hit.point;
+            OnMove?.Invoke(true);
         }
 
-        private void OnDisable()
-        {
-            mouseClickAction.performed += Move;
-            mouseClickAction.Disable();
-        }
-
-        private void Move(InputAction.CallbackContext context)
-        {
-            Ray ray = _mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-            if (Physics.Raycast(ray: ray, hitInfo: out RaycastHit hit) && hit.collider != null && hit.collider.gameObject.layer.CompareTo(_groundLayer)==0)
-            {
-                if (_moveCoroutine != null) StopMove();
-                _moveCoroutine = StartCoroutine(PlayerMove(hit.point));
-                _targetPosition = hit.point;
-                OnMove?.Invoke(true);
-            }
-        }
-
-        private void StopMove()
+        public void StopMove()
         {
             StopCoroutine(_moveCoroutine);
             OnMove?.Invoke(false);

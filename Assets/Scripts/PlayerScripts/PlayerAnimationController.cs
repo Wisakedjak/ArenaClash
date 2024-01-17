@@ -21,6 +21,7 @@ namespace PlayerScripts
         {
             _animator.SetBool("isIdle", !obj);
             _animator.SetBool("isBoltCast", obj);
+            _animator.SetBool("isWalking", false);
         }
     }
 }

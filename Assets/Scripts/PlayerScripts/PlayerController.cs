@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using Enums;
+using Spells;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,11 +9,11 @@ namespace PlayerScripts
 {
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] private InputAction mouseClickAction;
         private ClickToMove _clickToMove;
         private PlayerAnimationController _playerAnimationController;
         private Animator _animator;
         private PlayerMagicSystem _playerMagicSystem;
+        private PlayerInputController _playerInputController;
         private Camera _mainCamera;
         
         private int _groundLayer;
@@ -20,30 +23,64 @@ namespace PlayerScripts
             _clickToMove= GetComponent<ClickToMove>();
             _playerAnimationController = GetComponent<PlayerAnimationController>();
             _playerMagicSystem = GetComponent<PlayerMagicSystem>();
+            _playerInputController = GetComponent<PlayerInputController>();
             _mainCamera = Camera.main;
             _groundLayer = LayerMask.NameToLayer("Ground");
         }
 
         private void OnEnable()
         {
-            mouseClickAction.Enable();
-            mouseClickAction.performed += Move;
+            _playerInputController.InputAction += (inputType) =>
+            {
+                switch (inputType)
+                {
+                    case InputTypeEnum.Move:
+                        Move();
+                        break;
+                    case InputTypeEnum.SpellCastQ:
+                        SpellCast(inputType);
+                        break;
+                    case InputTypeEnum.SpellCastW:
+                        SpellCast(inputType);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(inputType), inputType, null);
+                }
+            };
             _clickToMove.OnMove += OnMove;
-            _playerMagicSystem.OnBoltCast += SpellCast;
+            _playerMagicSystem.OnSpellCast += OnSpellCast;
 
         }
 
        private void OnDisable()
        {
-           mouseClickAction.performed += Move;
-           mouseClickAction.Disable();
-           _clickToMove.OnMove -= _playerAnimationController.OnMove;
+           _clickToMove.OnMove -= OnMove;
+           _playerMagicSystem.OnSpellCast -= OnSpellCast;
        }
 
-       private void SpellCast(bool obj)
+       private void SpellCast(InputTypeEnum inputType)
        {
-           _clickToMove.StopMove();
-           _playerAnimationController.OnBoltCast(obj);
+           switch (inputType)
+           {
+               case InputTypeEnum.SpellCastQ:
+                   _playerMagicSystem.SpellCastQ();
+                   break;
+               case InputTypeEnum.SpellCastW:
+                   _playerMagicSystem.SpellCastW();
+                   break;
+               default:
+                   throw new ArgumentOutOfRangeException(nameof(inputType), inputType, null);
+           }
+           
+       }
+       
+       private void OnSpellCast(bool obj)
+       {
+           if (obj)
+           {
+               _clickToMove.StopMove();
+               _playerAnimationController.OnBoltCast(true);
+           }
            
        }
 
@@ -53,7 +90,7 @@ namespace PlayerScripts
            _playerAnimationController.OnMove(obj);
        }
 
-       private void Move(InputAction.CallbackContext context)
+       private void Move()
        {
            if (_playerMagicSystem.IsCastingMagic) return;
            Ray ray = _mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());

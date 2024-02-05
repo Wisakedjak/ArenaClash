@@ -15,6 +15,7 @@ namespace PlayerScripts
         {
             _animator.SetBool("isIdle", !obj);
             _animator.SetBool("isWalking", obj);
+            _animator.SetBool("isBoltCast", false);
         }
         
         public void OnBoltCast(bool obj)
